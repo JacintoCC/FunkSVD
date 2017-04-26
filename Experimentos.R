@@ -11,7 +11,7 @@ make.experiment(tra, tst, parameters = list(k = 2))
 
 param.grid <- expand.grid(k = seq(2,40, by = 4),
                           initialization = 0.1,
-                          lr = c(0.0005,0.001),
+                          lr = seq(0.0005,0.002, length.out = 4),
                           gamma = seq(0.01, 0.03, length.out = 3),
                           max.iter= 10,
                           verbose = F)
@@ -31,5 +31,4 @@ results <- pbmclapply(param, function(param.combination){
    single.res <- make.experiment(tra,tst,
                                  parameters = append(param.combination, 
                                                      list(actualization.feature = SGD.feature)))
-}, mc.cores = 4,mc.preschedule = T, mc.silent = F)
-
+}, mc.cores = 3, mc.preschedule = T, mc.silent = F)
