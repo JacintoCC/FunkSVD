@@ -1,0 +1,112 @@
+---
+title: "Gráficos"
+author: "Jacinto Carrasco Castillo"
+date: "26 de abril de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = T)
+```
+
+# Gráficos
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+r.10 <- read.csv("Data/resultados10.csv")
+r.10.sgd <- read.csv("Data/resultados10.sgd.csv")[,-1]
+r.50 <-read.csv("Data/resultados50.csv")[,-1]
+colnames(r.10.sgd)[c(7,8)] <- c("E.in","E.out")
+results <- rbind(r.10, r.10.sgd, r.50)
+results$alg = rep(c("GD","SGD","GD"), each = 120)
+```
+
+```{r}
+results$lr <- as.factor(results$lr)
+results$gamma <- as.factor(results$gamma)
+results$max.iter <- as.factor(results$max.iter)
+
+ggplot(results,aes(x = k, y = E.out, color = lr, shape = alg, alpha = max.iter)) +
+   geom_point() + 
+   labs(title = "Error train por LR, algoritmo y max.iter")
+```
+
+```{r}
+library(dplyr)
+results$max.iter <- as.factor(results$max.iter)
+results.gd <- filter(results, alg == "GD")
+ggplot(results.gd, aes(x = k, y = E.in, color = lr, alpha = gamma, shape = max.iter)) + 
+   geom_jitter() +
+   labs(title = "Error train GD")
+```
+
+```{r}
+results <- filter(results, gamma == 0.01) %>% select(-gamma)
+```
+
+```{r}
+in.vs.out <- filter(results, alg == "GD", lr == 0.002) %>% select(k, E.in, E.out,max.iter) %>%
+   reshape::melt(id.vars = c("k", "max.iter"))
+ggplot(in.vs.out, aes(x = k, color = variable, y = value, shape = max.iter)) +
+   geom_point(data = in.vs.out, size = 3,
+              aes(x = k, color = variable, y = value, shape = max.iter)) +
+   geom_line(data = filter(in.vs.out, max.iter == 10),
+             aes(x = k, color = variable, y = value)) +
+   geom_line(data = filter(in.vs.out, max.iter == 50),
+             aes(x = k, color = variable, y = value)) +
+   labs(title = "Resultados en train y test para GD, lr = 0.002, 10 iteraciones")
+```
+
+
+# Predicciones
+
+```{r}
+titulos <- read.csv("Data/movies.csv")
+valoraciones  <- c(1,5,
+                   2,3,
+                   32,4,
+                   47,3.5,
+                   165,1,
+                   296,4,
+                   356,4.5,
+                   160080,4,
+                   127098,5,
+                   117176,4,
+                   112556,5,
+                   112552,5)
+valoraciones <- matrix(valoraciones, ncol = 2, byrow = T)
+valoraciones <- data.frame(valoraciones,titulos[titulos[,1] %in% valoraciones[,1], 2] )
+```
+
+```{r}
+modelo <- funkSVD(tra, k = 20, lr = 0.002, max.iter = 50)
+```
+
+```{r include.ratings}
+new.user.prediction <- function(user.rat, model, train){
+   # Transformación en vector disperso
+   ratings.vec <- rep(NA, ncol(train))
+   ratings.vec[which(titulos$movieId %in% user.rat[,1])] <- user.rat[,2]
+   # Normalización
+   baseline <- apply(train,2,mean,na.rm = T)
+   baseline <- baseline + mean(ratings.vec,na.rm=T) - 
+      mean(apply(train,1,mean,na.rm = T),na.rm=T)
+   ratings.vec <- ratings.vec - baseline
+   # Vector de características
+   u <- apply(modelo$V, 2, function(v) sum(v*ratings.vec,na.rm=T))
+   print(u)
+   # Predicciones
+   predictions <- apply(modelo$V, 1, function(v) sum(v * u,na.rm=T)) + baseline
+   return(cbind(titulos,predictions))
+   sorted <- titulos[order(predictions, decreasing = T), 2]
+   sorted <- sorted[1:20]
+}
+sorted <- new.user.prediction(valoraciones,modelo, tra)
+```
+
+```{r}
+```
+
