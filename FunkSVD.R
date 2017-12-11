@@ -63,7 +63,7 @@ GD.feature <- function(R, U, Vt,f,
 #'@param R Ratings matrix
 #'@return Baseline predictions
 baseline <- function(R){
-   offset.users <- apply(tra, 1, mean, na.rm = T) - mean(apply(tra, 1, mean, na.rm = T), na.rm = T)
+   offset.users <- apply(R, 1, mean, na.rm = T) - mean(apply(R, 1, mean, na.rm = T), na.rm = T)
    baseline.movies <- apply(tra, 2, mean, na.rm = T)
    
    prediction <- matrix(offset.users, ncol = ncol(R), nrow = nrow(R)) + 
